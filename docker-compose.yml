@@ -1,0 +1,52 @@
+services:
+  mysql:
+    image: mysql:8
+    container_name: practica3-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: sakra2023
+      MYSQL_DATABASE: prueba_docker
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-psakra2023"]
+      timeout: 10s
+      retries: 10
+      interval: 5s
+      start_period: 30s
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: practica3-backend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DB_HOST=mysql
+      - DB_USER=root
+      - DB_PASSWORD=sakra2023
+      - DB_NAME=prueba_docker
+    depends_on:
+      mysql:
+        condition: service_healthy
+    volumes:
+      - ./server/imagenes_user:/app/server/imagenes_user
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: practica3-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
